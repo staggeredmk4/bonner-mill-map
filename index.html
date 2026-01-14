@@ -23,16 +23,14 @@
       --panelW: 360px;
       --radius: 14px;
       --border: 1px solid #e5e5e5;
+
+      /* Mobile map height: tweak this if you want more/less map */
+      --mobileMapH: 34dvh;
     }
+
     html, body { height: 100%; margin: 0; }
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
-
-    /* Desktop layout: left panel + map */
-    #app {
-      height: 100%;
-      display: grid;
-      grid-template-columns: var(--panelW) 1fr;
-    }
+    #app { height: 100%; display: grid; grid-template-columns: var(--panelW) 1fr; position: relative; }
     #sidebar {
       padding: 12px;
       border-right: 1px solid #ddd;
@@ -42,7 +40,7 @@
     }
     #map { height: 100%; }
 
-    .title { font-weight: 800; font-size: 16px; margin: 0 0 6px; }
+    .title { font-weight: 900; font-size: 16px; margin: 0 0 6px; }
     .sub { color: #555; font-size: 12px; margin: 0 0 10px; line-height: 1.25; }
 
     .row { display: flex; gap: 8px; align-items: center; margin: 8px 0; flex-wrap: wrap; }
@@ -59,16 +57,15 @@
       border-radius: 10px;
       border: 1px solid #ccc;
       background: #f7f7f7;
-      font-weight: 700;
+      font-weight: 800;
       cursor: pointer;
     }
     button:active { transform: translateY(1px); }
 
-    .sectionTitle { font-weight: 800; margin: 12px 0 8px; }
+    .sectionTitle { font-weight: 900; margin: 12px 0 8px; }
     .smallNote { font-size: 12px; color: #666; line-height: 1.3; }
 
     .list { display: grid; gap: 8px; }
-
     .card {
       border: var(--border);
       border-radius: var(--radius);
@@ -79,6 +76,7 @@
     }
     .card:hover { border-color: #c9c9c9; }
     .cardActive { border-color: #bdbdbd; box-shadow: 0 1px 6px rgba(0,0,0,0.06); }
+
     .line1 { font-weight: 900; display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
     .line2 { color: #444; font-size: 13px; }
     .line3 { color: #666; font-size: 12px; }
@@ -98,9 +96,9 @@
       border-radius: 12px;
       border: 1px solid #ddd;
       background: #fff;
-      font-weight: 800;
+      font-weight: 900;
     }
-    .arrivalBtn span { font-weight: 700; color: #555; }
+    .arrivalBtn span { font-weight: 800; color: #555; }
 
     /* Admin coordinate helper */
     .coordBox {
@@ -115,31 +113,43 @@
     }
     code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
 
-    /* MOBILE: Keep map big. Sidebar becomes a bottom drawer overlay */
+    /* Drawer UI bits (mobile only) */
+    #drawerHandle { display: none; }
+    #drawerToggleRow { display: none; }
+
+    /* MOBILE: Map pinned to top, panel fills below (expanded by default) */
     @media (max-width: 860px) {
-      #app {
-        grid-template-columns: 1fr;
-        grid-template-rows: 1fr; /* map owns the layout */
+      #app { grid-template-columns: 1fr; grid-template-rows: auto; }
+
+      #map {
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        height: var(--mobileMapH);
+        z-index: 1;
       }
+
       #sidebar {
-        position: absolute;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        height: 42%;
-        max-height: 420px;
+        position: fixed;
+        top: var(--mobileMapH);
+        left: 0; right: 0; bottom: 0;
+        height: auto;
         border-right: none;
         border-top: 1px solid #ddd;
         border-radius: 16px 16px 0 0;
         box-shadow: 0 -8px 22px rgba(0,0,0,0.12);
         overflow: auto;
         padding: 12px;
+        background: #fff;
+        z-index: 20;
       }
+
       #sidebar.drawer-collapsed {
+        top: calc(var(--mobileMapH) + 6px);
         height: 64px;
         overflow: hidden;
         padding-bottom: 10px;
       }
+
       #drawerHandle {
         display: flex;
         justify-content: center;
@@ -151,42 +161,36 @@
         border-radius: 999px;
         background: #d6d6d6;
       }
+
       #drawerToggleRow {
         display: flex;
         justify-content: space-between;
         align-items: center;
         gap: 10px;
+        margin-bottom: 6px;
       }
       #drawerToggleRow button {
         padding: 8px 10px;
+        font-weight: 900;
       }
-      #map { height: 100%; }
-    }
-
-    /* Desktop: hide drawer handle */
-    #drawerHandle { display: none; }
-    #drawerToggleRow { display: none; }
-    @media (max-width: 860px) {
-      #drawerHandle { display: flex; }
-      #drawerToggleRow { display: flex; }
     }
   </style>
 </head>
 
 <body>
 <div id="app">
-  <div id="sidebar" class="drawer-collapsed">
+  <div id="sidebar">
     <div id="drawerHandle"><div class="bar"></div></div>
 
     <div id="drawerToggleRow">
       <div style="font-weight:900;">Destinations</div>
-      <button id="drawerToggleBtn" type="button">Expand</button>
+      <button id="drawerToggleBtn" type="button">Collapse</button>
     </div>
 
     <div class="title">Bonner Mill Site – Truck Map</div>
     <div class="sub">
-      Pick a business → pick an arrival point → follow the highlighted route.
-      <br>Addresses are listed in case the BOL shows only an address.
+      Pick a business → pick an arrival point → follow the highlighted route.<br>
+      Addresses are listed in case the BOL shows only an address.
     </div>
 
     <div class="row">
@@ -215,19 +219,20 @@
 <script>
 /**
  * ============================================================
- * 1) CONFIG: Set the base image file name here
+ * CONFIG
  * ============================================================
  */
 const BASE_IMAGE = "site.png"; // change to "site.jpg" if needed
 
 /**
  * ============================================================
- * 2) DATA: Businesses (Vacant L excluded)
- *    NOTE: A2 is the ONLY visible stop for now (per your request).
+ * DATA
+ * - Button format: "ID – Shipping/Receiving"
+ * - Default = Shipping/Receiving unless specifically stated
+ * - Only B, D, I have Shipping/Receiving-specific points
+ * - A2 only visible for now (others hidden)
+ * - I has 3 points (Shipping, Receiving, Shipping/Receiving)
  * ============================================================
- *
- * Coordinates are [y, x] in image space (CRS.Simple).
- * Get coords by clicking the map; read [y, x] from the Admin helper box.
  */
 const SITE = {
   origin: {
@@ -240,78 +245,91 @@ const SITE = {
   businesses: [
     { id:"A", name:"UFP", address:"9088A Bonner Mill Road",
       arrivals: [
-        { id:"A1", label:"Arrival A1 (Ship/Recv)", visible:false, coord:null, route: [] },
-        { id:"A2", label:"Arrival A2 (Ship/Recv)", visible:true,  coord:null, route: [] },
-        { id:"A3", label:"Arrival A3 (Ship/Recv)", visible:false, coord:null, route: [] },
-        { id:"A4", label:"Arrival A4 (Ship/Recv)", visible:false, coord:null, route: [] },
-        { id:"A5", label:"Arrival A5 (Ship/Recv)", visible:false, coord:null, route: [] },
-        { id:"A6", label:"Arrival A6 (Ship/Recv)", visible:false, coord:null, route: [] },
-        { id:"A7", label:"Arrival A7 (Ship/Recv)", visible:false, coord:null, route: [] },
-        { id:"A8", label:"Arrival A8 (Ship/Recv)", visible:false, coord:null, route: [] },
+        { id:"A1", label:"Shipping/Receiving", visible:false, coord:null, route: [] },
+        { id:"A2", label:"Shipping/Receiving", visible:true,  coord:null, route: [] }, // ONLY visible for now
+        { id:"A3", label:"Shipping/Receiving", visible:false, coord:null, route: [] },
+        { id:"A4", label:"Shipping/Receiving", visible:false, coord:null, route: [] },
+        { id:"A5", label:"Shipping/Receiving", visible:false, coord:null, route: [] },
+        { id:"A6", label:"Shipping/Receiving", visible:false, coord:null, route: [] },
+        { id:"A7", label:"Shipping/Receiving", visible:false, coord:null, route: [] },
+        { id:"A8", label:"Shipping/Receiving", visible:false, coord:null, route: [] },
       ]
     },
+
     { id:"B", name:"Alcom LLC", address:"9063 Bonner Mill Road",
       arrivals: [
-        { id:"B1", label:"Shipping (B1)", coord:null, route: [] },
-        { id:"B2", label:"Receiving (B2)", coord:null, route: [] },
+        { id:"B1", label:"Shipping",  coord:null, route: [] },
+        { id:"B2", label:"Receiving", coord:null, route: [] },
       ]
     },
+
     { id:"C", name:"Montana Whiskey", address:"9257 Bonner Mill Road",
       arrivals: [
-        { id:"C1", label:"Arrival (C1)", coord:null, route: [] },
+        { id:"C1", label:"Shipping/Receiving", coord:null, route: [] },
       ]
     },
+
     { id:"D", name:"Big Sky Fulfillment", address:"9263 Bonner Mill Road",
       arrivals: [
-        { id:"D1", label:"Shipping (D1)", coord:null, route: [] },
-        { id:"D2", label:"Receiving (D2)", coord:null, route: [] },
-        { id:"D3", label:"Shipping/Receiving (D3)", coord:null, route: [] },
+        { id:"D1", label:"Shipping",           coord:null, route: [] },
+        { id:"D2", label:"Receiving",          coord:null, route: [] },
+        { id:"D3", label:"Shipping/Receiving", coord:null, route: [] },
       ]
     },
+
     { id:"E", name:"Posh Chocolate", address:"327 Whitehouse Lane",
       arrivals: [
-        { id:"E1", label:"Arrival (E1)", coord:null, route: [] },
+        { id:"E1", label:"Shipping/Receiving", coord:null, route: [] },
       ]
     },
+
     { id:"F", name:"Zombie Tools", address:"9165 Bonner Mill Road",
       arrivals: [
-        { id:"F1", label:"Arrival (F1)", coord:null, route: [] },
+        { id:"F1", label:"Shipping/Receiving", coord:null, route: [] },
       ]
     },
+
     { id:"G", name:"Botanie Soap", address:"8758 Bonner Mill Road",
       arrivals: [
-        { id:"G1", label:"Arrival (G1)", coord:null, route: [] },
+        { id:"G1", label:"Shipping/Receiving", coord:null, route: [] },
       ]
     },
+
     { id:"H", name:"Northwest Factory Finishes", address:"8941 Bonner Mill Road",
       arrivals: [
-        { id:"H1", label:"Arrival (H1)", coord:null, route: [] },
+        { id:"H1", label:"Shipping/Receiving", coord:null, route: [] },
       ]
     },
+
     { id:"I", name:"Planetary Designs", address:"9255 Bonner Mill Road",
       arrivals: [
-        { id:"I1", label:"Arrival (I1)", coord:null, route: [] },
-        { id:"I2", label:"Arrival (I2)", coord:null, route: [] },
+        { id:"I1", label:"Shipping",           coord:null, route: [] },
+        { id:"I2", label:"Receiving",          coord:null, route: [] },
+        { id:"I3", label:"Shipping/Receiving", coord:null, route: [] },
       ]
     },
+
     { id:"J", name:"Zootown Volleyball", address:"9251 Bonner Mill Road",
       arrivals: [
-        { id:"J1", label:"Arrival (J1)", coord:null, route: [] },
+        { id:"J1", label:"Shipping/Receiving", coord:null, route: [] },
       ]
     },
+
     { id:"K", name:"WMA Specialist", address:"9088D Bonner Mill Road",
       arrivals: [
-        { id:"K1", label:"Arrival (K1)", coord:null, route: [] },
+        { id:"K1", label:"Shipping/Receiving", coord:null, route: [] },
       ]
     },
+
     { id:"M", name:"WCP Solutions", address:"9088B Bonner Mill Road",
       arrivals: [
-        { id:"M1", label:"Arrival (M1)", coord:null, route: [] },
+        { id:"M1", label:"Shipping/Receiving", coord:null, route: [] },
       ]
     },
+
     { id:"N", name:"NIM Norfolk Iron & Metal", address:"9144 Bonner Mill Road",
       arrivals: [
-        { id:"N1", label:"Arrival (N1)", coord:null, route: [] },
+        { id:"N1", label:"Shipping/Receiving", coord:null, route: [] },
       ]
     },
   ]
@@ -319,7 +337,7 @@ const SITE = {
 
 /**
  * ============================================================
- * 3) MAP SETUP: image base map (CRS.Simple)
+ * MAP SETUP (image base map)
  * ============================================================
  */
 const map = L.map("map", {
@@ -367,14 +385,43 @@ document.getElementById("clearBtn").addEventListener("click", clearSelection);
 
 /**
  * ============================================================
- * 4) UI: Inline accordion arrivals under each business
+ * UI: Drawer (mobile) + Inline accordion arrivals (all)
  * ============================================================
  */
-let expandedBizId = null;
+const sidebar = document.getElementById("sidebar");
+const drawerBtn = document.getElementById("drawerToggleBtn");
+
+function isMobile() {
+  return window.matchMedia("(max-width: 860px)").matches;
+}
+
+function setDrawerCollapsed(collapsed) {
+  if (!isMobile()) return;
+  sidebar.classList.toggle("drawer-collapsed", collapsed);
+  drawerBtn.textContent = collapsed ? "Expand" : "Collapse";
+  setTimeout(() => map.invalidateSize(), 100);
+}
+
+drawerBtn.addEventListener("click", () => {
+  const isCollapsed = sidebar.classList.contains("drawer-collapsed");
+  setDrawerCollapsed(!isCollapsed);
+});
+
+/* Start expanded on mobile, normal on desktop */
+function applyInitialDrawerState() {
+  if (isMobile()) {
+    setDrawerCollapsed(false); // expanded by default (per your request)
+  } else {
+    sidebar.classList.remove("drawer-collapsed");
+  }
+}
+window.addEventListener("resize", applyInitialDrawerState);
 
 function visibleArrivalsFor(biz) {
   return biz.arrivals.filter(a => a.visible !== false);
 }
+
+let expandedBizId = null;
 
 function buildBusinessList(filterText = "") {
   const listEl = document.getElementById("bizList");
@@ -398,7 +445,7 @@ function buildBusinessList(filterText = "") {
     card.innerHTML = `
       <div class="line1">
         <div>${b.id} – ${b.name}</div>
-        <div class="smallNote" style="font-weight:800; color:#555;">${vArr.length} stop${vArr.length!==1 ? "s" : ""}</div>
+        <div class="smallNote" style="font-weight:900; color:#555;">${vArr.length} stop${vArr.length!==1 ? "s" : ""}</div>
       </div>
       <div class="line2">${b.address}</div>
       <div class="line3">Tap to show arrival points</div>
@@ -433,11 +480,7 @@ function buildBusinessList(filterText = "") {
     card.addEventListener("click", () => {
       expandedBizId = (expandedBizId === b.id) ? null : b.id;
       buildBusinessList(document.getElementById("search").value);
-
-      // On mobile, expand the drawer automatically when a business is tapped
-      if (window.matchMedia("(max-width: 860px)").matches) {
-        setDrawerCollapsed(false);
-      }
+      if (isMobile()) setDrawerCollapsed(false);
     });
 
     listEl.appendChild(card);
@@ -484,49 +527,16 @@ function selectArrival(bizId, arrivalId) {
 
   arrivalMarker.openPopup();
 
-  // On mobile, collapse drawer after choosing an arrival point to maximize map
-  if (window.matchMedia("(max-width: 860px)").matches) {
-    setDrawerCollapsed(true);
-  }
+  /* Optional: collapse after choosing an arrival point to maximize map */
+  if (isMobile()) setDrawerCollapsed(true);
 }
 
 /**
  * ============================================================
- * 5) Mobile drawer behavior: expand/collapse
- * ============================================================
- */
-const sidebar = document.getElementById("sidebar");
-const drawerBtn = document.getElementById("drawerToggleBtn");
-
-function setDrawerCollapsed(collapsed) {
-  if (!window.matchMedia("(max-width: 860px)").matches) return;
-
-  sidebar.classList.toggle("drawer-collapsed", collapsed);
-  drawerBtn.textContent = collapsed ? "Expand" : "Collapse";
-}
-
-drawerBtn.addEventListener("click", () => {
-  const isCollapsed = sidebar.classList.contains("drawer-collapsed");
-  setDrawerCollapsed(!isCollapsed);
-});
-
-// Start collapsed on mobile so the map is big
-function applyInitialDrawerState() {
-  if (window.matchMedia("(max-width: 860px)").matches) {
-    setDrawerCollapsed(true);
-  } else {
-    sidebar.classList.remove("drawer-collapsed");
-  }
-}
-window.addEventListener("resize", applyInitialDrawerState);
-
-/**
- * ============================================================
- * 6) Load base image and init
+ * IMAGE LOAD + INIT
  * ============================================================
  */
 function initWithImage() {
-  // Build list immediately (even if the image fails)
   buildBusinessList("");
 
   const img = new Image();
@@ -538,20 +548,25 @@ function initWithImage() {
     L.imageOverlay(BASE_IMAGE, imageBounds).addTo(map);
     map.fitBounds(imageBounds);
 
-    // Origin marker once you set SITE.origin.coord
     layers.origin.clearLayers();
     if (SITE.origin.coord) {
       L.circleMarker(SITE.origin.coord, { radius: 10, weight: 2 })
         .bindPopup(`<b>${SITE.origin.label}</b><br>${SITE.origin.address}`)
         .addTo(layers.origin);
     }
+
+    applyInitialDrawerState();
+    setTimeout(() => map.invalidateSize(), 100);
   };
   img.onerror = () => {
     alert(`Could not load base image "${BASE_IMAGE}".\n\nMake sure it is in the same folder as index.html in your GitHub repo.`);
+    applyInitialDrawerState();
+    setTimeout(() => map.invalidateSize(), 100);
   };
   img.src = BASE_IMAGE;
 
   applyInitialDrawerState();
+  setTimeout(() => map.invalidateSize(), 100);
 }
 
 initWithImage();
