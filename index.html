@@ -143,11 +143,12 @@
         z-index: 20;
       }
 
-      #sidebar.drawer-collapsed {
-        top: calc(var(--mobileMapH) + 6px);
-        height: 64px;
+        #sidebar.drawer-collapsed {
+        top: auto;        /* stop pinning under the map */
+        height: 72px;     /* collapsed bar height */
         overflow: hidden;
         padding-bottom: 10px;
+
       }
 
       #drawerHandle {
@@ -173,6 +174,17 @@
         padding: 8px 10px;
         font-weight: 900;
       }
+        /* Hide large content when drawer is collapsed */
+        #sidebar.drawer-collapsed .title,
+        #sidebar.drawer-collapsed .sub,
+        #sidebar.drawer-collapsed .row,
+        #sidebar.drawer-collapsed input,
+        #sidebar.drawer-collapsed .sectionTitle,
+        #sidebar.drawer-collapsed #bizList,
+        #sidebar.drawer-collapsed .coordBox {
+          display: none;
+       }
+
     }
   </style>
 </head>
