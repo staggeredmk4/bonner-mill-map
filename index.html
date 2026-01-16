@@ -542,6 +542,7 @@ const layers = {
   origin: L.layerGroup().addTo(map),
   arrivalMarkers: L.layerGroup().addTo(map),
   route: L.layerGroup().addTo(map),
+  gps: L.layerGroup().addTo(map)
 };
 
 function fmtCoord(latlng) {
@@ -549,6 +550,85 @@ function fmtCoord(latlng) {
   const x = Math.round(latlng.lng);
   return `[${y}, ${x}]`;
 }
+  /***********************
+ * GPS -> Image transform
+ * Using 3 control points you provided:
+ * [y,x] = (lat,lng)
+ ***********************/
+const GEO_TO_IMG = {
+  // x = ax*lng + bx*lat + cx
+  ax:  94819.1474413,
+  bx:  74542.23777244,
+  cx: 7303846.75279915,
+
+  // y = ay*lng + by*lat + cy
+  ay:   -54335.82412824,
+  by:   138956.73996961,
+  cy: -12700201.05937054
+};
+
+function latLngToImage(lat, lng) {
+  const x = (GEO_TO_IMG.ax * lng) + (GEO_TO_IMG.bx * lat) + GEO_TO_IMG.cx;
+  const y = (GEO_TO_IMG.ay * lng) + (GEO_TO_IMG.by * lat) + GEO_TO_IMG.cy;
+  return [y, x]; // Leaflet CRS.Simple expects [y, x]
+}
+
+// Always-on GPS marker
+let gpsMarker = null;
+let gpsAccuracy = null;
+
+function startGpsWatch() {
+  if (!navigator.geolocation) return;
+
+  navigator.geolocation.watchPosition(
+    (pos) => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      const acc = pos.coords.accuracy; // meters
+
+      const yx = latLngToImage(lat, lng);
+
+      // Create marker once
+      if (!gpsMarker) {
+        gpsMarker = L.circleMarker(yx, {
+          radius: 7,
+          weight: 3,
+          color: "#ffffff",      // outline (white)
+          fillColor: "#ff2d55",  // fill (bright pink/red)
+          fillOpacity: 1
+        }).addTo(layers.gps);
+
+        gpsMarker.bindPopup("Your location");
+      } else {
+        gpsMarker.setLatLng(yx);
+      }
+
+      // Optional: show accuracy ring (approximate)
+      // Note: meters -> image units is not exact; this is a rough visual only.
+      // If you prefer no ring, you can delete this whole block.
+      if (!gpsAccuracy) {
+        gpsAccuracy = L.circle(yx, {
+          radius: acc,  // rough; acceptable as a visual cue
+          weight: 1,
+          fillOpacity: 0.08
+        }).addTo(layers.gps);
+      } else {
+        gpsAccuracy.setLatLng(yx);
+        gpsAccuracy.setRadius(acc);
+      }
+    },
+    (err) => {
+      // If location denied/unavailable, do nothing (site still works)
+      console.log("GPS error:", err && err.message ? err.message : err);
+    },
+    {
+      enableHighAccuracy: true,
+      maximumAge: 2000,
+      timeout: 10000
+    }
+  );
+}
+
 
 map.on("click", (e) => {
   document.getElementById("coordReadout").innerHTML =
@@ -866,6 +946,7 @@ function initWithImage() {
 }
 
 initWithImage();
+startGpsWatch();
 </script>
 </body>
 </html>
