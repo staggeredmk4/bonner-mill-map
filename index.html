@@ -730,11 +730,13 @@ function applyLastView() {
     LAST_VIEW = { type: "bounds", bounds };
 
     // Fit now (desktop / before resize)
-const bottomPad = (isMobile() && document.body.classList.contains("drawer-is-collapsed")) ? 110 : 20;
-map.fitBounds(bounds, {
-  paddingTopLeft: [20, 80],
-  paddingBottomRight: [20, bottomPad]
+const bottomPad = (isMobile() && document.body.classList.contains("drawer-is-collapsed")) ? 130 : 30;
+map.fitBounds(LAST_VIEW.bounds, {
+  paddingTopLeft: [30, 120],
+  paddingBottomRight: [30, bottomPad],
+  maxZoom: 0
 });
+
 
 
   } else {
