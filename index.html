@@ -583,7 +583,12 @@ function setDrawerCollapsed(collapsed) {
   document.body.classList.toggle("drawer-is-collapsed", collapsed);
 
   drawerBtn.textContent = collapsed ? "Expand" : "Collapse";
-  setTimeout(() => map.invalidateSize(), 100);
+  
+    setTimeout(() => {
+    map.invalidateSize();
+    applyLastView();
+  }, 150);
+
 }
 
 drawerBtn.addEventListener("click", () => {
@@ -696,23 +701,47 @@ function selectArrival(bizId, arrivalId) {
     return;
   }
 
+  // Remember the last "intended view" so we can re-apply it after the drawer resizes the map.
+let LAST_VIEW = null; // { type: "bounds", bounds } OR { type:"center", center, zoom }
+
+function applyLastView() {
+  if (!LAST_VIEW) return;
+
+  if (LAST_VIEW.type === "bounds" && LAST_VIEW.bounds) {
+    map.fitBounds(LAST_VIEW.bounds, { padding: [20, 20] });
+  } else if (LAST_VIEW.type === "center" && LAST_VIEW.center) {
+    map.setView(LAST_VIEW.center, LAST_VIEW.zoom ?? map.getZoom());
+  }
+}
+
   const arrivalMarker = L.marker(ap.coord, { title: `${biz.id} ${biz.name} - ${ap.id}` })
     .bindPopup(`<b>${biz.id} – ${biz.name}</b><br>${biz.address}<br><b>${ap.id}</b>: ${ap.label}`)
     .addTo(layers.arrivalMarkers);
 
-  if (Array.isArray(ap.route) && ap.route.length >= 2) {
-    L.polyline(ap.route, { weight: 8, opacity: 0.9 })
-      .addTo(layers.route);
+    if (Array.isArray(ap.route) && ap.route.length >= 2) {
+    L.polyline(ap.route, { weight: 8, opacity: 0.9 }).addTo(layers.route);
     const bounds = L.latLngBounds(ap.route);
-    map.fitBounds(bounds.pad(0.2));
+
+    // Store intended view for later resize events
+    LAST_VIEW = { type: "bounds", bounds };
+
+    // Fit now (desktop / before resize)
+    map.fitBounds(bounds, { padding: [20, 20] });
   } else {
+    // Store intended view for later resize events
+    LAST_VIEW = { type: "center", center: ap.coord, zoom: 0 };
+
     map.setView(ap.coord, 0);
   }
 
   arrivalMarker.openPopup();
 
-  /* Optional: collapse after choosing an arrival point to maximize map */
-  if (isMobile()) setDrawerCollapsed(true);
+  // Collapse drawer on mobile to maximize map, then re-apply view after resize
+  if (isMobile()) {
+    setDrawerCollapsed(true);
+    setTimeout(() => applyLastView(), 200);
+  }
+
 }
 
 /**
