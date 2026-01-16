@@ -591,16 +591,22 @@ function startGpsWatch() {
       // Create marker once
       if (!gpsMarker) {
         gpsMarker = L.circleMarker(yx, {
-          radius: 7,
+          pane: "markerPane",
+          radius: 9,
           weight: 3,
-          color: "#ffffff",      // outline (white)
-          fillColor: "#ff2d55",  // fill (bright pink/red)
+          color: "#ffffff",
+          fillColor: "#ff2d55",
           fillOpacity: 1
         }).addTo(layers.gps);
+        
+        gpsMarker.bringToFront();
+
 
         gpsMarker.bindPopup("Your location");
       } else {
         gpsMarker.setLatLng(yx);
+        gpsMarker.bringToFront();
+
       }
 
       // Optional: show accuracy ring (approximate)
