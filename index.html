@@ -28,6 +28,12 @@
       --mobileMapH: 34dvh;
     }
 
+      /* Make click-point obvious */
+      #map { cursor: crosshair !important; }
+    .leaflet-grab { cursor: crosshair !important; }
+    .leaflet-grab.leaflet-dragging { cursor: crosshair !important; }
+
+    
     html, body { height: 100%; margin: 0; }
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
     #app { height: 100%; display: grid; grid-template-columns: var(--panelW) 1fr; position: relative; }
