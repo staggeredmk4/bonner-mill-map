@@ -119,6 +119,12 @@
 
     /* MOBILE: Map pinned to top, panel fills below (expanded by default) */
     @media (max-width: 860px) {
+
+    /* When the drawer is collapsed, let the map expand to full screen */
+      body.drawer-is-collapsed #map {
+        height: 100dvh;
+  }
+
       #app { grid-template-columns: 1fr; grid-template-rows: auto; }
 
       #map {
@@ -574,6 +580,8 @@ function isMobile() {
 function setDrawerCollapsed(collapsed) {
   if (!isMobile()) return;
   sidebar.classList.toggle("drawer-collapsed", collapsed);
+  document.body.classList.toggle("drawer-is-collapsed", collapsed);
+
   drawerBtn.textContent = collapsed ? "Expand" : "Collapse";
   setTimeout(() => map.invalidateSize(), 100);
 }
