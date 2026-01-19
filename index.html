@@ -536,8 +536,9 @@ minZoom: -3,
 maxZoom: 3
 });
 
-  map.on("dragstart", () => { userMovedMap = true; });
-  map.on("zoomstart", () => { userMovedMap = true; });
+map.on("dragstart", (e) => { if (e.originalEvent) userMovedMap = true; });
+map.on("zoomstart", (e) => { if (e.originalEvent) userMovedMap = true; });
+
 
 map.createPane("gpsPane");
 map.getPane("gpsPane").style.zIndex = 650; // higher than routes
@@ -965,6 +966,9 @@ L.circleMarker(SITE.origin.coord, { radius: 10, weight: 2 })
 
 applyInitialDrawerState();
 setTimeout(() => map.invalidateSize(), 100);
+
+    userMovedMap = false;
+
 };
 img.onerror = () => {
 alert(`Could not load base image "${BASE_IMAGE}".\n\nMake sure it is in the same folder as index.html in your GitHub repo.`);
