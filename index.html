@@ -535,6 +535,10 @@ const map = L.map("map", {
   minZoom: -3,
   maxZoom: 3
 });
+
+  map.on("dragstart", () => { userMovedMap = true; });
+  map.on("zoomstart", () => { userMovedMap = true; });
+
   map.createPane("gpsPane");
   map.getPane("gpsPane").style.zIndex = 650; // higher than routes
 
@@ -580,6 +584,10 @@ function latLngToImage(lat, lng) {
 let gpsMarker = null;
 let gpsAccuracy = null;
 
+let FOLLOW_ME = true;
+let userMovedMap = false;
+
+
 function startGpsWatch() {
   if (!navigator.geolocation) return;
 
@@ -610,6 +618,11 @@ function startGpsWatch() {
       } else {
         gpsMarker.setLatLng(yx);
         gpsMarker.bringToFront();
+        
+        if (FOLLOW_ME && !userMovedMap) {
+  map.panTo(yx, { animate: true });
+}
+
 
       }
 
@@ -856,6 +869,9 @@ function selectArrival(bizId, arrivalId) {
   if (!ap.coord || ap.coord.length !== 2) {
     alert(`${arrivalId} has no coordinate yet.\n\nClick the map at the correct spot and copy the [y,x] into index.html for ${arrivalId}.`);
     return;
+
+    userMovedMap = false;
+
   }
 
   // Remember the last "intended view" so we can re-apply it after the drawer resizes the map.
