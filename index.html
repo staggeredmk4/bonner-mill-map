@@ -598,6 +598,12 @@ const lng = pos.coords.longitude;
 const acc = pos.coords.accuracy; // meters
 
 const yx = latLngToImage(lat, lng);
+  
+  // FOLLOW GPS (always center unless user has manually moved the map)
+if (FOLLOW_ME && !userMovedMap) {
+  map.panTo(yx, { animate: true });
+}
+
 
 // Create marker once
 if (!gpsMarker) {
