@@ -535,6 +535,9 @@ const map = L.map("map", {
   minZoom: -3,
   maxZoom: 3
 });
+  map.createPane("gpsPane");
+  map.getPane("gpsPane").style.zIndex = 650; // higher than routes
+
 
 let imageBounds = null;
 
@@ -591,13 +594,14 @@ function startGpsWatch() {
       // Create marker once
       if (!gpsMarker) {
         gpsMarker = L.circleMarker(yx, {
-          pane: "markerPane",
-          radius: 9,
+          pane: "gpsPane",   // <<< THIS is the key
+          radius: 7,
           weight: 3,
           color: "#ffffff",
           fillColor: "#ff2d55",
           fillOpacity: 1
         }).addTo(layers.gps);
+
         
         gpsMarker.bringToFront();
 
