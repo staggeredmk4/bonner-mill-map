@@ -1,3 +1,537 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Bonner Mill Site - Truck Map</title>
+
+<!-- Leaflet -->
+<link
+rel="stylesheet"
+href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+crossorigin=""
+/>
+<script
+src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+crossorigin=""
+></script>
+
+<style>
+:root{
+--panelW: 360px;
+--radius: 14px;
+--border: 1px solid #e5e5e5;
+
+/* Mobile map height: tweak this if you want more/less map */
+--mobileMapH: 34dvh;
+}
+
+/* Make click-point obvious */
+#map { cursor: crosshair !important; }
+.leaflet-grab { cursor: crosshair !important; }
+.leaflet-grab.leaflet-dragging { cursor: crosshair !important; }
+
+
+html, body { height: 100%; margin: 0; }
+body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+#app { height: 100%; display: grid; grid-template-columns: var(--panelW) 1fr; position: relative; }
+#sidebar {
+padding: 12px;
+border-right: 1px solid #ddd;
+overflow: auto;
+background: #fff;
+z-index: 20;
+}
+#map { height: 100%; }
+
+.title { font-weight: 900; font-size: 16px; margin: 0 0 6px; }
+.sub { color: #555; font-size: 12px; margin: 0 0 10px; line-height: 1.25; }
+
+.row { display: flex; gap: 8px; align-items: center; margin: 8px 0; flex-wrap: wrap; }
+input[type="search"] {
+width: 100%;
+padding: 10px;
+border: 1px solid #ccc;
+border-radius: 10px;
+font-size: 14px;
+box-sizing: border-box;
+}
+button {
+padding: 10px 12px;
+border-radius: 10px;
+border: 1px solid #ccc;
+background: #f7f7f7;
+font-weight: 800;
+cursor: pointer;
+}
+button:active { transform: translateY(1px); }
+
+.sectionTitle { font-weight: 900; margin: 12px 0 8px; }
+.smallNote { font-size: 12px; color: #666; line-height: 1.3; }
+
+.list { display: grid; gap: 8px; }
+.card {
+border: var(--border);
+border-radius: var(--radius);
+padding: 10px;
+display: grid;
+gap: 4px;
+background: #fff;
+}
+.card:hover { border-color: #c9c9c9; }
+.cardActive { border-color: #bdbdbd; box-shadow: 0 1px 6px rgba(0,0,0,0.06); }
+
+.line1 { font-weight: 900; display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.line2 { color: #444; font-size: 13px; }
+.line3 { color: #666; font-size: 12px; }
+
+/* Inline arrivals inside a business card */
+.inlineArrivals {
+margin-top: 8px;
+padding-top: 8px;
+border-top: 1px dashed #e3e3e3;
+display: grid;
+gap: 8px;
+}
+.arrivalBtn {
+width: 100%;
+text-align: left;
+padding: 10px;
+border-radius: 12px;
+border: 1px solid #ddd;
+background: #fff;
+font-weight: 900;
+}
+.arrivalBtn span { font-weight: 800; color: #555; }
+
+/* Admin coordinate helper */
+.coordBox {
+margin-top: 10px;
+padding: 10px;
+border-radius: 12px;
+background: #f7f7ff;
+border: 1px solid #d9d9ff;
+font-size: 12px;
+color: #333;
+line-height: 1.35;
+}
+code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+
+/* Drawer UI bits (mobile only) */
+#drawerHandle { display: none; }
+#drawerToggleRow { display: none; }
+
+/* MOBILE: Map pinned to top, panel fills below (expanded by default) */
+@media (max-width: 860px) {
+
+/* When the drawer is collapsed, let the map expand to full screen */
+body.drawer-is-collapsed #map {
+height: 100dvh;
+}
+
+#app { grid-template-columns: 1fr; grid-template-rows: auto; }
+
+#map {
+position: fixed;
+top: 0; left: 0; right: 0;
+height: var(--mobileMapH);
+z-index: 1;
+}
+
+#sidebar {
+position: fixed;
+top: var(--mobileMapH);
+left: 0; right: 0; bottom: 0;
+height: auto;
+border-right: none;
+border-top: 1px solid #ddd;
+border-radius: 16px 16px 0 0;
+box-shadow: 0 -8px 22px rgba(0,0,0,0.12);
+overflow: auto;
+padding: 12px;
+background: #fff;
+z-index: 20;
+}
+
+#sidebar.drawer-collapsed {
+top: auto;        /* stop pinning under the map */
+height: 72px;     /* collapsed bar height */
+overflow: hidden;
+padding-bottom: 10px;
+
+}
+
+#drawerHandle {
+display: flex;
+justify-content: center;
+margin-bottom: 8px;
+}
+#drawerHandle .bar {
+width: 44px;
+height: 5px;
+border-radius: 999px;
+background: #d6d6d6;
+}
+
+#drawerToggleRow {
+display: flex;
+justify-content: space-between;
+align-items: center;
+gap: 10px;
+margin-bottom: 6px;
+}
+#drawerToggleRow button {
+padding: 8px 10px;
+font-weight: 900;
+}
+/* Hide large content when drawer is collapsed */
+#sidebar.drawer-collapsed .title,
+#sidebar.drawer-collapsed .sub,
+#sidebar.drawer-collapsed .row,
+#sidebar.drawer-collapsed input,
+#sidebar.drawer-collapsed .sectionTitle,
+#sidebar.drawer-collapsed #bizList,
+#sidebar.drawer-collapsed .coordBox {
+display: none;
+}
+
+}
+</style>
+</head>
+
+<body>
+<div id="app">
+<div id="sidebar">
+<div id="drawerHandle"><div class="bar"></div></div>
+
+<div id="drawerToggleRow">
+<div style="font-weight:900;">Destinations</div>
+<button id="drawerToggleBtn" type="button">Collapse</button>
+</div>
+
+<div class="title">Bonner Mill Site – Truck Map</div>
+<div class="sub">
+Pick a business → pick an arrival point → follow the highlighted route.<br>
+Addresses are listed in case the BOL shows only an address.
+</div>
+
+<div class="row">
+<button id="resetBtn" type="button" title="Return to entrance">Reset to Entrance</button>
+<button id="clearBtn" type="button" title="Clear selection">Clear</button>
+</div>
+
+<input id="search" type="search" placeholder="Search by business name or address (e.g., 9088 or Whitehouse)" />
+
+<div class="sectionTitle">Destinations</div>
+<div id="bizList" class="list"></div>
+
+<div class="coordBox" id="coordBox">
+<div><b>Admin helper (not for drivers):</b></div>
+<div>Tap the map to show image coordinates for placing arrival points & routes.</div>
+<div id="coordReadout" style="margin-top:6px;">Click the map…</div>
+<div class="smallNote" style="margin-top:6px;">
+Coordinates are in <b>image space</b> (not GPS). This avoids dependency on incorrect public road data.
+</div>
+</div>
+</div>
+
+<div id="map"></div>
+</div>
+
+<script>
+/**
+* ============================================================
+* CONFIG
+* ============================================================
+*/
+const BASE_IMAGE = "site.png"; // change to "site.jpg" if needed
+
+/**
+* ============================================================
+* DATA
+* - Button format: "ID – Shipping/Receiving"
+* - Default = Shipping/Receiving unless specifically stated
+* - Only B, D, I have Shipping/Receiving-specific points
+* - A5 only visible for now (others hidden)
+* - I has 3 points (Shipping, Receiving, Shipping/Receiving)
+* ============================================================
+*/
+const SITE = {
+origin: {
+id: "STAR",
+label: "YOU ARE HERE (Main Entrance / QR)",
+address: "9329 Bonner Mill Road",
+coord: [127, 1044] // TODO later
+},
+
+businesses: [
+{ id:"A", name:"UFP", address:"9088A Bonner Mill Road",
+arrivals: [
+{ id:"A1", label:"Shipping/Receiving", visible:false, coord:[227, 1028], route: [] },
+{ id:"A2", label:"Shipping/Receiving", visible:false,  coord:[157, 1029], route: [] }, 
+{ id:"A3", label:"Shipping/Receiving", visible:false, coord:[107, 965], route: [] },
+{ id:"A4", label:"Shipping/Receiving", visible:false, coord:[105, 855], route: [] },
+{ id:"A5", label:"Shipping/Receiving", visible:true, coord:[96, 756], route: [
+[127, 1044],
+[352, 1034],
+[363, 1002],
+[366, 921],
+[305, 707],
+[279, 630],
+[238, 637],
+[123, 639],
+[88, 656],
+[96, 756]
+] },  // ONLY visible for now
+{ id:"A6", label:"Shipping/Receiving", visible:false, coord:[213, 662], route: [] },
+{ id:"A7", label:"Shipping/Receiving", visible:false, coord:[240, 833], route: [] },
+{ id:"A8", label:"Shipping/Receiving", visible:false, coord:[240, 844], route: [] },
+]
+},
+
+{ id:"B", name:"Alcom LLC", address:"9063 Bonner Mill Road",
+arrivals: [
+{ id:"B1", label:"Shipping",  coord:[485, 726], route: [
+[127, 1044],
+[352, 1034],
+[363, 1002],
+[366, 921],
+[552, 839],
+[552, 818],
+[529, 761],
+[485, 726]
+] },
+{ id:"B2", label:"Receiving", coord:[322, 698], route: [
+[127, 1044],
+[352, 1034],
+[363, 1002],
+[366, 921],
+[305, 707],
+[322, 698]
+] },
+]
+},
+
+{ id:"C", name:"Montana Whiskey & Freestone Concrete Works", address:"9257 Bonner Mill Road",
+arrivals: [
+{ id:"C1", label:"Montana Whiskey Shipping/Receiving", coord:[506, 968], route: [
+[127, 1044],
+[352, 1034],
+[417, 1072],
+[419, 1072],
+[444, 1090],
+[516, 1050],
+[534, 1013],
+[518, 961],
+[506, 968]
+] },
+{ id:"C2", label:"Freestone Shipping/Receiving", coord:[506, 1029], route: [
+[127, 1044],
+[352, 1034],
+[417, 1072],
+[419, 1072],
+[444, 1090],
+[516, 1050],
+[506, 1029]
+] },
+]
+},
+
+{ id:"D", name:"Big Sky Fulfillment", address:"9263 Bonner Mill Road",
+arrivals: [
+{ id:"D1", label:"Shipping",           coord:[485, 1231], route: [
+[127, 1044],
+[379, 1033],
+[526, 1163],
+[528, 1172],
+[528, 1180],
+[527, 1189],
+[524, 1199],
+[498, 1240],
+[485, 1231]
+] },
+{ id:"D2", label:"Receiving",          coord:[337, 1378], route: [
+[127, 1044],
+[379, 1033],
+[526, 1163],
+[528, 1172],
+[528, 1180],
+[527, 1189],
+[524, 1199],
+[498, 1240],
+[480, 1274],
+[473, 1286], //Y by planetary and zootown volleyball
+[448, 1288],
+[374, 1409],
+[329, 1392],
+[337, 1378]
+] },
+{ id:"D3", label:"Shipping/Receiving", coord:[443, 1119], route: [
+[127, 1044],
+[379, 1033],
+[417, 1072],
+[412, 1090],
+[443, 1119]
+] },
+]
+},
+
+{ id:"E", name:"Posh Chocolate", address:"327 Whitehouse Lane",
+arrivals: [
+{ id:"E1", label:"Shipping/Receiving", coord:[194, 1208], route: [
+[127, 1044],
+[155, 1043],
+[188, 1165],
+[194, 1208]
+] },
+]
+},
+
+{ id:"F", name:"Zombie Tools", address:"9165 Bonner Mill Road",
+arrivals: [
+{ id:"F1", label:"Shipping/Receiving", coord:[423, 1040], route: [] },
+]
+},
+
+{ id:"G", name:"Botanie Soap", address:"8758 Bonner Mill Road",
+arrivals: [
+{ id:"G1", label:"Shipping/Receiving", coord:[79, 141], route: [
+[127, 1044],
+[352, 1034],
+[363, 1002],
+[366, 921],
+[305, 707],
+[250, 565],
+[180, 404],
+[182, 127],
+[139, 27],
+[132, 18],
+[122, 14],
+[112, 16],
+[105, 20],
+[69, 77],
+[65, 155],
+[182, 127]
+] },
+]
+},
+
+{ id:"H", name:"Northwest Factory Finishes", address:"8941 Bonner Mill Road",
+arrivals: [
+{ id:"H1", label:"Shipping/Receiving", coord:[328, 488], route: [
+[127, 1044],
+[352, 1034],
+[363, 1002],
+[366, 921],
+[305, 707],
+[250, 565],
+[328, 488]
+] },
+]
+},
+
+{ id:"I", name:"Planetary Designs", address:"9255 Bonner Mill Road",
+arrivals: [
+{ id:"I1", label:"Shipping",           coord:[496, 1280], route: [
+[127, 1044],
+[379, 1033],
+[526, 1163],
+[528, 1172],
+[528, 1180],
+[527, 1189],
+[524, 1199],
+[498, 1240],
+[480, 1274],
+[496, 1280]
+] },
+{ id:"I2", label:"Receiving",          coord:[514, 1315], route: [
+[127, 1044],
+[379, 1033],
+[526, 1163],
+[528, 1172],
+[528, 1180],
+[527, 1189],
+[524, 1199],
+[498, 1240],
+[480, 1274],
+[473, 1286],
+[477, 1303],
+[509, 1330],
+[514, 1315]
+] },
+]
+},
+
+{ id:"J", name:"Zootown Volleyball", address:"9251 Bonner Mill Road",
+arrivals: [
+{ id:"J1", label:"Shipping/Receiving", coord:[456, 1353], route: [
+[127, 1044],
+[379, 1033],
+[526, 1163],
+[528, 1172],
+[528, 1180],
+[527, 1189],
+[524, 1199],
+[498, 1240],
+[480, 1274],
+[473, 1286],
+[477, 1303],
+[496, 1319],
+[472, 1368],
+[456, 1353]
+] },
+]
+},
+
+{ id:"K", name:"WMA Specialist", address:"9088D Bonner Mill Road",
+arrivals: [
+{ id:"K1", label:"Shipping/Receiving", coord:[264, 1020], route: [
+[105, 1045],                            
+[127, 1044],
+[264, 1039],
+[264, 1020]
+] },
+]
+},
+
+{ id:"M", name:"WCP Solutions", address:"9088B Bonner Mill Road",
+arrivals: [
+{ id:"M1", label:"Shipping/Receiving", coord:[337, 929], route: [
+[127, 1044],
+[352, 1034],
+[363, 1002],
+[366, 921],
+[337, 929]
+] },
+]
+},
+
+{ id:"N", name:"NIM Norfolk Iron & Metal", address:"9144 Bonner Mill Road",
+arrivals: [
+{ id:"N1", label:"Shipping/Receiving", coord:[264, 885], route: [
+[127, 1044],
+[352, 1034],
+[363, 1002],
+[366, 921],
+[348, 858],
+[271, 858],
+[264, 885]
+] },
+]
+},
+]
+};
+
+/**
+* ============================================================
+* MAP SETUP (image base map)
+* ============================================================
+*/
+const map = L.map("map", {
+crs: L.CRS.Simple,
+zoomControl: true,
 minZoom: -3,
 maxZoom: 3
 });
@@ -8,7 +542,45 @@ maxZoom: 3
 map.createPane("gpsPane");
 map.getPane("gpsPane").style.zIndex = 650; // higher than routes
 
-@@ -580,6 +584,10 @@
+
+let imageBounds = null;
+
+const layers = {
+origin: L.layerGroup().addTo(map),
+arrivalMarkers: L.layerGroup().addTo(map),
+route: L.layerGroup().addTo(map),
+gps: L.layerGroup().addTo(map)
+};
+
+function fmtCoord(latlng) {
+const y = Math.round(latlng.lat);
+const x = Math.round(latlng.lng);
+return `[${y}, ${x}]`;
+}
+/***********************
+* GPS -> Image transform
+* Using 3 control points you provided:
+* [y,x] = (lat,lng)
+***********************/
+const GEO_TO_IMG = {
+// x = ax*lng + bx*lat + cx
+ax:  94819.1474413,
+bx:  74542.23777244,
+cx: 7303846.75279915,
+
+// y = ay*lng + by*lat + cy
+ay:   -54335.82412824,
+by:   138956.73996961,
+cy: -12700201.05937054
+};
+
+function latLngToImage(lat, lng) {
+const x = (GEO_TO_IMG.ax * lng) + (GEO_TO_IMG.bx * lat) + GEO_TO_IMG.cx;
+const y = (GEO_TO_IMG.ay * lng) + (GEO_TO_IMG.by * lat) + GEO_TO_IMG.cy;
+return [y, x]; // Leaflet CRS.Simple expects [y, x]
+}
+
+// Always-on GPS marker
 let gpsMarker = null;
 let gpsAccuracy = null;
 
@@ -19,7 +591,30 @@ let userMovedMap = false;
 function startGpsWatch() {
 if (!navigator.geolocation) return;
 
-@@ -610,6 +618,11 @@
+navigator.geolocation.watchPosition(
+(pos) => {
+const lat = pos.coords.latitude;
+const lng = pos.coords.longitude;
+const acc = pos.coords.accuracy; // meters
+
+const yx = latLngToImage(lat, lng);
+
+// Create marker once
+if (!gpsMarker) {
+gpsMarker = L.circleMarker(yx, {
+pane: "gpsPane",   // <<< THIS is the key
+radius: 7,
+weight: 3,
+color: "#ffffff",
+fillColor: "#ff2d55",
+fillOpacity: 1
+}).addTo(layers.gps);
+
+
+gpsMarker.bringToFront();
+
+
+gpsMarker.bindPopup("Your location");
 } else {
 gpsMarker.setLatLng(yx);
 gpsMarker.bringToFront();
@@ -31,7 +626,246 @@ gpsMarker.bringToFront();
 
 }
 
-@@ -856,6 +869,9 @@
+// Optional: show accuracy ring (approximate)
+// Note: meters -> image units is not exact; this is a rough visual only.
+// If you prefer no ring, you can delete this whole block.
+if (!gpsAccuracy) {
+gpsAccuracy = L.circle(yx, {
+radius: acc,  // rough; acceptable as a visual cue
+weight: 1,
+fillOpacity: 0.08
+}).addTo(layers.gps);
+} else {
+gpsAccuracy.setLatLng(yx);
+gpsAccuracy.setRadius(acc);
+}
+},
+(err) => {
+// If location denied/unavailable, do nothing (site still works)
+console.log("GPS error:", err && err.message ? err.message : err);
+},
+{
+enableHighAccuracy: true,
+maximumAge: 2000,
+timeout: 10000
+}
+);
+}
+
+
+map.on("click", (e) => {
+document.getElementById("coordReadout").innerHTML =
+`Map click coordinate: <code>${fmtCoord(e.latlng)}</code> &nbsp; (y, x)`;
+});
+
+function clearSelection() {
+layers.arrivalMarkers.clearLayers();
+layers.route.clearLayers();
+}
+
+function resetToEntrance() {
+clearSelection();
+if (SITE.origin.coord && imageBounds) {
+map.setView(SITE.origin.coord, 0);
+} else if (imageBounds) {
+map.fitBounds(imageBounds);
+}
+}
+
+document.getElementById("resetBtn").addEventListener("click", resetToEntrance);
+document.getElementById("clearBtn").addEventListener("click", clearSelection);
+
+/**
+* ============================================================
+* UI: Drawer (mobile) + Inline accordion arrivals (all)
+* ============================================================
+*/
+const sidebar = document.getElementById("sidebar");
+const drawerBtn = document.getElementById("drawerToggleBtn");
+
+function isMobile() {
+return window.matchMedia("(max-width: 860px)").matches;
+}
+
+function setDrawerCollapsed(collapsed) {
+if (!isMobile()) return;
+sidebar.classList.toggle("drawer-collapsed", collapsed);
+document.body.classList.toggle("drawer-is-collapsed", collapsed);
+
+drawerBtn.textContent = collapsed ? "Expand" : "Collapse";
+
+setTimeout(() => {
+map.invalidateSize();
+applyLastView();
+}, 150);
+
+}
+
+drawerBtn.addEventListener("click", () => {
+const isCollapsed = sidebar.classList.contains("drawer-collapsed");
+setDrawerCollapsed(!isCollapsed);
+});
+
+// Mobile swipe on the drawer handle area: swipe up = expand, swipe down = collapse
+(function enableDrawerSwipe() {
+let startY = null;
+let startX = null;
+
+function onStart(e) {
+if (!isMobile()) return;
+
+const t = e.touches ? e.touches[0] : null;
+if (!t) return;
+
+startY = t.clientY;
+startX = t.clientX;
+}
+
+function onMove(e) {
+// Prevent the page from scrolling while swiping the drawer handle
+// (only when we have an active swipe)
+if (startY !== null) e.preventDefault();
+}
+
+function onEnd(e) {
+if (!isMobile()) return;
+if (startY === null) return;
+
+const t = e.changedTouches ? e.changedTouches[0] : null;
+if (!t) { startY = null; startX = null; return; }
+
+const endY = t.clientY;
+const endX = t.clientX;
+
+const dy = endY - startY; // down is positive
+const dx = endX - startX;
+
+// Only treat as vertical swipe if it’s mostly vertical and big enough
+if (Math.abs(dy) > 35 && Math.abs(dy) > Math.abs(dx) * 1.2) {
+if (dy < 0) {
+// swipe up => expand
+setDrawerCollapsed(false);
+} else {
+// swipe down => collapse
+setDrawerCollapsed(true);
+}
+}
+
+startY = null;
+startX = null;
+}
+
+// Prefer swiping on the handle + header row (so we don't interfere with list scrolling)
+const handle = document.getElementById("drawerHandle");
+const header = document.getElementById("drawerToggleRow");
+[handle, header].forEach(el => {
+if (!el) return;
+el.addEventListener("touchstart", onStart, { passive: true });
+el.addEventListener("touchmove", onMove, { passive: false });
+el.addEventListener("touchend", onEnd, { passive: true });
+});
+})();
+
+/* Start expanded on mobile, normal on desktop */
+function applyInitialDrawerState() {
+if (isMobile()) {
+setDrawerCollapsed(false); // expanded by default (per your request)
+} else {
+sidebar.classList.remove("drawer-collapsed");
+}
+}
+window.addEventListener("resize", applyInitialDrawerState);
+
+function visibleArrivalsFor(biz) {
+return biz.arrivals.filter(a => a.visible !== false);
+}
+
+let expandedBizId = null;
+
+function buildBusinessList(filterText = "") {
+const listEl = document.getElementById("bizList");
+listEl.innerHTML = "";
+
+const q = filterText.trim().toLowerCase();
+
+const results = SITE.businesses.filter(b => {
+const hay = `${b.id} ${b.name} ${b.address}`.toLowerCase();
+return !q || hay.includes(q);
+});
+
+results.forEach(b => {
+const vArr = visibleArrivalsFor(b);
+
+const card = document.createElement("div");
+card.className = "card";
+card.style.cursor = "pointer";
+if (expandedBizId === b.id) card.classList.add("cardActive");
+
+card.innerHTML = `
+     <div class="line1">
+       <div>${b.id} – ${b.name}</div>
+       <div class="smallNote" style="font-weight:900; color:#555;">${vArr.length} stop${vArr.length!==1 ? "s" : ""}</div>
+     </div>
+     <div class="line2">${b.address}</div>
+     <div class="line3">Tap to show arrival points</div>
+   `;
+
+if (expandedBizId === b.id) {
+const inline = document.createElement("div");
+inline.className = "inlineArrivals";
+
+if (vArr.length === 0) {
+const note = document.createElement("div");
+note.className = "smallNote";
+note.textContent = "No active arrival points are currently enabled for this business.";
+inline.appendChild(note);
+} else {
+vArr.forEach(a => {
+const btn = document.createElement("button");
+btn.className = "arrivalBtn";
+btn.type = "button";
+btn.innerHTML = `${a.id} – <span>${a.label}</span>`;
+btn.addEventListener("click", (ev) => {
+ev.stopPropagation();
+selectArrival(b.id, a.id);
+});
+inline.appendChild(btn);
+});
+}
+
+card.appendChild(inline);
+}
+
+card.addEventListener("click", () => {
+expandedBizId = (expandedBizId === b.id) ? null : b.id;
+buildBusinessList(document.getElementById("search").value);
+if (isMobile()) setDrawerCollapsed(false);
+});
+
+listEl.appendChild(card);
+});
+
+if (results.length === 0) {
+const empty = document.createElement("div");
+empty.className = "smallNote";
+empty.textContent = "No matches. Try a different business name or address number.";
+listEl.appendChild(empty);
+}
+}
+
+document.getElementById("search").addEventListener("input", (e) => {
+buildBusinessList(e.target.value);
+});
+
+function selectArrival(bizId, arrivalId) {
+const biz = SITE.businesses.find(b => b.id === bizId);
+if (!biz) return;
+const ap = biz.arrivals.find(a => a.id === arrivalId);
+if (!ap) return;
+
+layers.arrivalMarkers.clearLayers();
+layers.route.clearLayers();
+
 if (!ap.coord || ap.coord.length !== 2) {
 alert(`${arrivalId} has no coordinate yet.\n\nClick the map at the correct spot and copy the [y,x] into index.html for ${arrivalId}.`);
 return;
@@ -41,3 +875,104 @@ return;
 }
 
 // Remember the last "intended view" so we can re-apply it after the drawer resizes the map.
+let LAST_VIEW = null; // { type: "bounds", bounds } OR { type:"center", center, zoom }
+
+function applyLastView() {
+if (!LAST_VIEW) return;
+
+if (LAST_VIEW.type === "bounds" && LAST_VIEW.bounds) {
+map.fitBounds(LAST_VIEW.bounds, { padding: [20, 20] });
+} else if (LAST_VIEW.type === "center" && LAST_VIEW.center) {
+map.setView(LAST_VIEW.center, LAST_VIEW.zoom ?? map.getZoom());
+}
+}
+
+const arrivalMarker = L.marker(ap.coord, { title: `${biz.id} ${biz.name} - ${ap.id}` })
+.bindPopup(
+`<b>${biz.id} – ${biz.name}</b><br>${biz.address}<br><b>${ap.id}</b>: ${ap.label}`,
+{ autoPan: false }
+)
+.addTo(layers.arrivalMarkers);
+
+
+if (Array.isArray(ap.route) && ap.route.length >= 2) {
+L.polyline(ap.route, { weight: 8, opacity: 0.9 }).addTo(layers.route);
+const bounds = L.latLngBounds(ap.route);
+
+// Store intended view for later resize events
+LAST_VIEW = { type: "bounds", bounds };
+
+// Fit now (desktop / before resize)
+const bottomPad = (isMobile() && document.body.classList.contains("drawer-is-collapsed")) ? 130 : 30;
+map.fitBounds(LAST_VIEW.bounds, {
+paddingTopLeft: [30, 120],
+paddingBottomRight: [30, bottomPad],
+maxZoom: -2
+});
+
+
+
+} else {
+// Store intended view for later resize events
+LAST_VIEW = { type: "center", center: ap.coord, zoom: 0 };
+
+map.setView(ap.coord, 0);
+}
+
+arrivalMarker.openPopup();
+
+// Collapse drawer on mobile to maximize map, then re-apply view after resize
+// Collapse drawer on mobile to maximize map, then re-apply view after resize
+if (isMobile()) {
+setDrawerCollapsed(true);
+setTimeout(() => {
+map.invalidateSize();
+applyLastView();
+}, 300);
+}
+
+}
+
+/**
+* ============================================================
+* IMAGE LOAD + INIT
+* ============================================================
+*/
+function initWithImage() {
+buildBusinessList("");
+
+const img = new Image();
+img.onload = () => {
+const w = img.width;
+const h = img.height;
+
+imageBounds = [[0,0],[h,w]];
+L.imageOverlay(BASE_IMAGE, imageBounds).addTo(map);
+map.fitBounds(imageBounds);
+
+layers.origin.clearLayers();
+if (SITE.origin.coord) {
+L.circleMarker(SITE.origin.coord, { radius: 10, weight: 2 })
+.bindPopup(`<b>${SITE.origin.label}</b><br>${SITE.origin.address}`)
+.addTo(layers.origin);
+}
+
+applyInitialDrawerState();
+setTimeout(() => map.invalidateSize(), 100);
+};
+img.onerror = () => {
+alert(`Could not load base image "${BASE_IMAGE}".\n\nMake sure it is in the same folder as index.html in your GitHub repo.`);
+applyInitialDrawerState();
+setTimeout(() => map.invalidateSize(), 100);
+};
+img.src = BASE_IMAGE;
+
+applyInitialDrawerState();
+setTimeout(() => map.invalidateSize(), 100);
+}
+
+initWithImage();
+startGpsWatch();
+</script>
+</body>
+</html>
