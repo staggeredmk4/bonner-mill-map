@@ -536,6 +536,10 @@ const map = L.map("map", {
   maxZoom: 3
 });
 
+  let FOLLOW_ME = true;
+  let userMovedMap = false;
+
+
   map.on("dragstart", () => { userMovedMap = true; });
   map.on("zoomstart", () => { userMovedMap = true; });
 
@@ -584,9 +588,6 @@ function latLngToImage(lat, lng) {
 let gpsMarker = null;
 let gpsAccuracy = null;
 
-let FOLLOW_ME = true;
-let userMovedMap = false;
-
 
 function startGpsWatch() {
   if (!navigator.geolocation) return;
@@ -615,16 +616,27 @@ function startGpsWatch() {
 
 
         gpsMarker.bindPopup("Your location");
-      } else {
-        gpsMarker.setLatLng(yx);
+              if (!gpsMarker) {
+          gpsMarker = L.circleMarker(yx, {
+            pane: "gpsPane",
+            radius: 7,
+            weight: 3,
+            color: "#ffffff",
+            fillColor: "#ff2d55",
+            fillOpacity: 1
+          }).addTo(layers.gps);
+        
+          gpsMarker.bindPopup("Your location");
+        } else {
+          gpsMarker.setLatLng(yx);
+        }
+        
         gpsMarker.bringToFront();
         
         if (FOLLOW_ME && !userMovedMap) {
-  map.panTo(yx, { animate: true });
-}
-
-
-      }
+          map.panTo(yx, { animate: true });
+        }
+        
 
       // Optional: show accuracy ring (approximate)
       // Note: meters -> image units is not exact; this is a rough visual only.
