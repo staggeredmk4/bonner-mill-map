@@ -693,18 +693,13 @@ if (FOLLOW_ME && !userMovedMap) {
 if (!gpsMarker) {
 gpsMarker = L.circleMarker(yx, {
 pane: "gpsPane",   // <<< THIS is the key
-radius: 7,
-weight: 3,
-color: "#ffffff",
-fillColor: "#ff2d55",
-fillOpacity: 1
+radius: 0,
+weight: 0,
+fillOpacity: 0
 }).addTo(layers.gps);
 
 
-gpsMarker.bringToFront();
-
-
-gpsMarker.bindPopup("Your location");
+  gpsMarker.bindPopup("Your location");
 } else {
 gpsMarker.setLatLng(yx);
 gpsMarker.bringToFront();
