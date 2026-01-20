@@ -33,6 +33,20 @@ crossorigin=""
 .leaflet-grab { cursor: crosshair !important; }
 .leaflet-grab.leaflet-dragging { cursor: crosshair !important; }
 
+  /* GPS heading arrow (above routes) */
+.gps-arrow {
+  width: 26px;
+  height: 26px;
+  transform-origin: 50% 50%;
+  pointer-events: none;
+}
+.gps-arrow svg {
+  width: 26px;
+  height: 26px;
+  display: block;
+}
+
+
 
 html, body { height: 100%; margin: 0; }
 body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
@@ -588,6 +602,29 @@ let gpsAccuracy = null;
 let FOLLOW_ME = true;
 let userMovedMap = false;
 
+  let gpsArrowMarker = null;
+let lastGeo = null; // { lat, lng }
+
+// Bearing from last point to current (degrees, 0 = north)
+function bearingDeg(lat1, lng1, lat2, lng2) {
+  const toRad = (d) => d * Math.PI / 180;
+  const toDeg = (r) => r * 180 / Math.PI;
+
+  const φ1 = toRad(lat1);
+  const φ2 = toRad(lat2);
+  const Δλ = toRad(lng2 - lng1);
+
+  const y = Math.sin(Δλ) * Math.cos(φ2);
+  const x =
+    Math.cos(φ1) * Math.sin(φ2) -
+    Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+
+  let θ = toDeg(Math.atan2(y, x));
+  if (θ < 0) θ += 360;
+  return θ;
+}
+
+
 
 function startGpsWatch() {
 if (!navigator.geolocation) return;
@@ -599,6 +636,52 @@ const lng = pos.coords.longitude;
 const acc = pos.coords.accuracy; // meters
 
 const yx = latLngToImage(lat, lng);
+
+  // Determine heading: prefer device heading, fallback to movement-based bearing
+let heading = pos.coords.heading;
+if (!Number.isFinite(heading) && lastGeo) {
+  const dLat = Math.abs(lat - lastGeo.lat);
+  const dLng = Math.abs(lng - lastGeo.lng);
+  if (dLat + dLng > 0.00001) {
+    heading = bearingDeg(lastGeo.lat, lastGeo.lng, lat, lng);
+  }
+}
+lastGeo = { lat, lng };
+
+// Build arrow HTML
+const arrowHtml = `
+  <div class="gps-arrow" style="transform: rotate(${Number.isFinite(heading) ? heading : 0}deg);">
+    <svg viewBox="0 0 24 24">
+      <path d="M12 2 L19 21 L12 17 L5 21 Z" fill="#ffffff"/>
+      <path d="M12 3.6 L17.8 20 L12 16.4 L6.2 20 Z" fill="#ff2d55"/>
+    </svg>
+  </div>
+`;
+
+// Create or update arrow marker
+if (!gpsArrowMarker) {
+  gpsArrowMarker = L.marker(yx, {
+    pane: "gpsPane",
+    interactive: false,
+    icon: L.divIcon({
+      className: "",
+      html: arrowHtml,
+      iconSize: [26, 26],
+      iconAnchor: [13, 13]
+    })
+  }).addTo(layers.gps);
+} else {
+  gpsArrowMarker.setLatLng(yx);
+  gpsArrowMarker.setIcon(
+    L.divIcon({
+      className: "",
+      html: arrowHtml,
+      iconSize: [26, 26],
+      iconAnchor: [13, 13]
+    })
+  );
+}
+
   
   // FOLLOW GPS (always center unless user has manually moved the map)
 if (FOLLOW_ME && !userMovedMap) {
