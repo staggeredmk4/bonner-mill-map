@@ -652,20 +652,6 @@ const acc = pos.coords.accuracy; // meters
 
 const yx = latLngToImage(lat, lng);
 
-  if (!window.__testArrow) {
-  window.__testArrow = L.marker(yx, {
-    pane: "gpsPane",
-    interactive: false,
-    icon: L.divIcon({
-      className: "",
-      html: `<div style="font-size:34px; font-weight:900;">⬆️</div>`,
-      iconSize: [34, 34],
-      iconAnchor: [17, 17]
-    })
-  }).addTo(layers.gps);
-} else {
-  window.__testArrow.setLatLng(yx);
-}
 
 
 // Determine heading: prefer device heading, fallback to movement-based bearing
@@ -683,11 +669,12 @@ lastGeo = { lat, lng };
 const arrowHtml = `
   <div class="gps-arrow" style="transform: rotate(${Number.isFinite(heading) ? ((heading + 60) % 360) : 0}deg);">
     <svg viewBox="0 0 24 24">
-      <path d="M12 2 L19 21 L12 17 L5 21 Z" fill="#ffffff"/>
-      <path d="M12 3.6 L17.8 20 L12 16.4 L6.2 20 Z" fill="#ff2d55"/>
+      <path d="M12 2 L19 21 L12 17 L5 21 Z" fill="#ffffff"></path>
+      <path d="M12 3.6 L17.8 20 L12 16.4 L6.2 20 Z" fill="#ff2d55"></path>
     </svg>
   </div>
 `;
+
 gpsArrowMarker.setZIndexOffset(3000);
 
 
