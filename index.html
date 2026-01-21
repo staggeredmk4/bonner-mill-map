@@ -33,17 +33,17 @@ crossorigin=""
 .leaflet-grab { cursor: crosshair !important; }
 .leaflet-grab.leaflet-dragging { cursor: crosshair !important; }
 
-  /* GPS heading arrow (above routes) */
+/* GPS heading arrow (above routes) */
 .gps-arrow {
-  width: 26px;
-  height: 26px;
-  transform-origin: 50% 50%;
-  pointer-events: none;
+width: 26px;
+height: 26px;
+transform-origin: 50% 50%;
+pointer-events: none;
 }
 .gps-arrow svg {
-  width: 26px;
-  height: 26px;
-  display: block;
+width: 26px;
+height: 26px;
+display: block;
 }
 
 
@@ -602,23 +602,6 @@ let gpsAccuracy = null;
 let FOLLOW_ME = true;
 let userMovedMap = false;
 
-  // Keep screen awake during navigation (requires HTTPS + user gesture)
-let wakeLockSentinel = null;
-
-async function enableWakeLock() {
-  try {
-    if (!("wakeLock" in navigator)) return;
-    wakeLockSentinel = await navigator.wakeLock.request("screen");
-  } catch (e) {
-    console.log("WakeLock not available:", e);
-  }
-}
-
-document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible") enableWakeLock();
-});
-
-
   let wakeLockSentinel = null;
 
 async function enableWakeLock() {
@@ -636,26 +619,26 @@ document.addEventListener("visibilitychange", () => {
 });
 
 
-  let gpsArrowMarker = null;
+let gpsArrowMarker = null;
 let lastGeo = null; // { lat, lng }
 
 // Bearing from last point to current (degrees, 0 = north)
 function bearingDeg(lat1, lng1, lat2, lng2) {
-  const toRad = (d) => d * Math.PI / 180;
-  const toDeg = (r) => r * 180 / Math.PI;
+const toRad = (d) => d * Math.PI / 180;
+const toDeg = (r) => r * 180 / Math.PI;
 
-  const φ1 = toRad(lat1);
-  const φ2 = toRad(lat2);
-  const Δλ = toRad(lng2 - lng1);
+const φ1 = toRad(lat1);
+const φ2 = toRad(lat2);
+const Δλ = toRad(lng2 - lng1);
 
-  const y = Math.sin(Δλ) * Math.cos(φ2);
-  const x =
-    Math.cos(φ1) * Math.sin(φ2) -
-    Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+const y = Math.sin(Δλ) * Math.cos(φ2);
+const x =
+Math.cos(φ1) * Math.sin(φ2) -
+Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
 
-  let θ = toDeg(Math.atan2(y, x));
-  if (θ < 0) θ += 360;
-  return θ;
+let θ = toDeg(Math.atan2(y, x));
+if (θ < 0) θ += 360;
+return θ;
 }
 
 
@@ -671,56 +654,56 @@ const acc = pos.coords.accuracy; // meters
 
 const yx = latLngToImage(lat, lng);
 
-  // Determine heading: prefer device heading, fallback to movement-based bearing
+// Determine heading: prefer device heading, fallback to movement-based bearing
 let heading = pos.coords.heading;
 if (!Number.isFinite(heading) && lastGeo) {
-  const dLat = Math.abs(lat - lastGeo.lat);
-  const dLng = Math.abs(lng - lastGeo.lng);
-  if (dLat + dLng > 0.00001) {
-    heading = bearingDeg(lastGeo.lat, lastGeo.lng, lat, lng);
-  }
+const dLat = Math.abs(lat - lastGeo.lat);
+const dLng = Math.abs(lng - lastGeo.lng);
+if (dLat + dLng > 0.00001) {
+heading = bearingDeg(lastGeo.lat, lastGeo.lng, lat, lng);
+}
 }
 lastGeo = { lat, lng };
 
 // Build arrow HTML
 const arrowHtml = `
-  <div class="gps-arrow" style="transform: rotate(${Number.isFinite(heading) ? ((heading + 60) % 360) : 0}deg);"
+ <div class="gps-arrow" style="transform: rotate(${Number.isFinite(heading) ? ((heading + 60) % 360) : 0}deg);"
 
-    <svg viewBox="0 0 24 24">
-      <path d="M12 2 L19 21 L12 17 L5 21 Z" fill="#ffffff"/>
-      <path d="M12 3.6 L17.8 20 L12 16.4 L6.2 20 Z" fill="#ff2d55"/>
-    </svg>
-  </div>
+   <svg viewBox="0 0 24 24">
+     <path d="M12 2 L19 21 L12 17 L5 21 Z" fill="#ffffff"/>
+     <path d="M12 3.6 L17.8 20 L12 16.4 L6.2 20 Z" fill="#ff2d55"/>
+   </svg>
+ </div>
 `;
 
 // Create or update arrow marker
 if (!gpsArrowMarker) {
-  gpsArrowMarker = L.marker(yx, {
-    pane: "gpsPane",
-    interactive: false,
-    icon: L.divIcon({
-      className: "",
-      html: arrowHtml,
-      iconSize: [26, 26],
-      iconAnchor: [13, 13]
-    })
-  }).addTo(layers.gps);
+gpsArrowMarker = L.marker(yx, {
+pane: "gpsPane",
+interactive: false,
+icon: L.divIcon({
+className: "",
+html: arrowHtml,
+iconSize: [26, 26],
+iconAnchor: [13, 13]
+})
+}).addTo(layers.gps);
 } else {
-  gpsArrowMarker.setLatLng(yx);
-  gpsArrowMarker.setIcon(
-    L.divIcon({
-      className: "",
-      html: arrowHtml,
-      iconSize: [26, 26],
-      iconAnchor: [13, 13]
-    })
-  );
+gpsArrowMarker.setLatLng(yx);
+gpsArrowMarker.setIcon(
+L.divIcon({
+className: "",
+html: arrowHtml,
+iconSize: [26, 26],
+iconAnchor: [13, 13]
+})
+);
 }
 
-  
-  // FOLLOW GPS (always center unless user has manually moved the map)
+
+// FOLLOW GPS (always center unless user has manually moved the map)
 if (FOLLOW_ME && !userMovedMap) {
-  map.panTo(yx, { animate: true });
+map.panTo(yx, { animate: true });
 }
 
 
@@ -734,13 +717,13 @@ fillOpacity: 0
 }).addTo(layers.gps);
 
 
-  gpsMarker.bindPopup("Your location");
+gpsMarker.bindPopup("Your location");
 } else {
 gpsMarker.setLatLng(yx);
 gpsMarker.bringToFront();
-        
-        if (FOLLOW_ME && !userMovedMap) {
-  map.panTo(yx, { animate: true });
+
+if (FOLLOW_ME && !userMovedMap) {
+map.panTo(yx, { animate: true });
 }
 
 
@@ -922,13 +905,13 @@ card.style.cursor = "pointer";
 if (expandedBizId === b.id) card.classList.add("cardActive");
 
 card.innerHTML = `
-     <div class="line1">
-       <div>${b.id} – ${b.name}</div>
-       <div class="smallNote" style="font-weight:900; color:#555;">${vArr.length} stop${vArr.length!==1 ? "s" : ""}</div>
-     </div>
-     <div class="line2">${b.address}</div>
-     <div class="line3">Tap to show arrival points</div>
-   `;
+    <div class="line1">
+      <div>${b.id} – ${b.name}</div>
+      <div class="smallNote" style="font-weight:900; color:#555;">${vArr.length} stop${vArr.length!==1 ? "s" : ""}</div>
+    </div>
+    <div class="line2">${b.address}</div>
+    <div class="line3">Tap to show arrival points</div>
+  `;
 
 if (expandedBizId === b.id) {
 const inline = document.createElement("div");
@@ -984,7 +967,7 @@ if (!biz) return;
 const ap = biz.arrivals.find(a => a.id === arrivalId);
 if (!ap) return;
 
-  if (typeof enableWakeLock === "function") enableWakeLock();
+  enableWakeLock();
 
 layers.arrivalMarkers.clearLayers();
 layers.route.clearLayers();
@@ -993,7 +976,7 @@ if (!ap.coord || ap.coord.length !== 2) {
 alert(`${arrivalId} has no coordinate yet.\n\nClick the map at the correct spot and copy the [y,x] into index.html for ${arrivalId}.`);
 return;
 
-    userMovedMap = false;
+userMovedMap = false;
 
 }
 
@@ -1083,7 +1066,7 @@ L.circleMarker(SITE.origin.coord, { radius: 10, weight: 2 })
 applyInitialDrawerState();
 setTimeout(() => map.invalidateSize(), 100);
 
-    userMovedMap = false;
+userMovedMap = false;
 
 };
 img.onerror = () => {
