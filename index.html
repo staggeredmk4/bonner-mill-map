@@ -668,6 +668,24 @@ const acc = pos.coords.accuracy; // meters
 
 const yx = latLngToImage(lat, lng);
 
+  // TEMP TEST: show a big arrow so we can confirm arrow rendering works
+if (!window.__testArrow) {
+  window.__testArrow = L.marker(yx, {
+    pane: "gpsPane",
+    interactive: false,
+    icon: L.divIcon({
+      className: "",
+      html: `<div style="font-size:34px; font-weight:900; transform: rotate(0deg);">⬆️</div>`,
+      iconSize: [34, 34],
+      iconAnchor: [17, 17]
+    })
+  }).addTo(layers.gps);
+} else {
+  window.__testArrow.setLatLng(yx);
+}
+window.__testArrow.setZIndexOffset(3000);
+
+
 // Determine heading: prefer device heading, fallback to movement-based bearing
 let heading = pos.coords.heading;
 if (!Number.isFinite(heading) && lastGeo) {
