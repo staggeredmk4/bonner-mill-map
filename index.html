@@ -567,6 +567,20 @@ route: L.layerGroup().addTo(map),
 gps: L.layerGroup().addTo(map)
 };
 
+  // Remember the last intended view (used after drawer resize on mobile)
+let LAST_VIEW = null; // { type:"bounds", bounds } OR { type:"center", center, zoom }
+
+function applyLastView() {
+  if (!LAST_VIEW) return;
+
+  if (LAST_VIEW.type === "bounds" && LAST_VIEW.bounds) {
+    map.fitBounds(LAST_VIEW.bounds, { padding: [20, 20] });
+  } else if (LAST_VIEW.type === "center" && LAST_VIEW.center) {
+    map.setView(LAST_VIEW.center, LAST_VIEW.zoom ?? map.getZoom());
+  }
+}
+
+
 function fmtCoord(latlng) {
 const y = Math.round(latlng.lat);
 const x = Math.round(latlng.lng);
