@@ -616,23 +616,7 @@ let gpsAccuracy = null;
 let FOLLOW_ME = true;
 let userMovedMap = false;
 
-  let wakeLockSentinel = null;
-
-async function enableWakeLock() {
-  try {
-    if (!("wakeLock" in navigator)) return;
-    wakeLockSentinel = await navigator.wakeLock.request("screen");
-  } catch (e) {
-    console.log("WakeLock not available:", e);
-  }
-}
-
-// If the page/tab becomes hidden then visible again, re-request wake lock
-document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible") enableWakeLock();
-});
-
-
+ 
 let gpsArrowMarker = null;
 let lastGeo = null; // { lat, lng }
 
@@ -983,7 +967,6 @@ if (!biz) return;
 const ap = biz.arrivals.find(a => a.id === arrivalId);
 if (!ap) return;
 
-  enableWakeLock();
 
 layers.arrivalMarkers.clearLayers();
 layers.route.clearLayers();
