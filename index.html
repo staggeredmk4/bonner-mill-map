@@ -728,8 +728,9 @@ const lat = pos.coords.latitude;
 const lng = pos.coords.longitude;
 const acc = pos.coords.accuracy; // meters
 
-const yx = latLngToImage(lat, lng);
-
+const yxRaw = latLngToImage(lat, lng);
+const snap = snapToRoute(yxRaw);
+const yx = snap.snapped;
 
 
 // Determine heading: prefer device heading, fallback to movement-based bearing
