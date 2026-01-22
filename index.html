@@ -781,10 +781,12 @@ iconAnchor: [13, 13]
 }
 
 
-// FOLLOW GPS (always center unless user has manually moved the map)
+// FOLLOW GPS (center + keep a closer zoom)
 if (FOLLOW_ME && !userMovedMap) {
-map.panTo(yx, { animate: true });
+  const targetZoom = 0; // try 0 first; use 1 to zoom in more, -1 to zoom out slightly
+  map.setView(yx, targetZoom, { animate: true });
 }
+
 
 
 // Create marker once
