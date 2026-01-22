@@ -746,7 +746,7 @@ lastGeo = { lat, lng };
 
 // Build arrow HTML
 const arrowHtml = `
-  <div class="gps-arrow" style="transform: rotate(${Number.isFinite(heading) ? ((heading + 50) % 360) : 0}deg);">
+  <div class="gps-arrow" style="transform: rotate(${Number.isFinite(heading) ? ((heading + 45) % 360) : 0}deg);">
     <svg viewBox="0 0 24 24">
       <path d="M12 2 L19 21 L12 17 L5 21 Z" fill="#ffffff"></path>
       <path d="M12 3.6 L17.8 20 L12 16.4 L6.2 20 Z" fill="#ff2d55"></path>
