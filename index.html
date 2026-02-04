@@ -1100,6 +1100,12 @@ map.setView(ap.coord, 0);
 
 arrivalMarker.openPopup();
 
+  // Auto-hide popup after a short delay (so it doesn't block the route)
+    setTimeout(() => {
+      try { arrivalMarker.closePopup(); } catch(e) {}
+    }, 3500);
+
+
 // Collapse drawer on mobile to maximize map, then re-apply view after resize
 // Collapse drawer on mobile to maximize map, then re-apply view after resize
 if (isMobile()) {
